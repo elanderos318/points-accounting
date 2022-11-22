@@ -6,6 +6,7 @@ import * as dayjs from 'dayjs';
 import * as utc from 'dayjs/plugin/utc';
 import { OpenPosition } from './interfaces/open-position.interface';
 import { SpendPointsDto } from './dto/spend-points.dto';
+import { PayerBalances } from './interfaces/payer-balances.interface';
 
 dayjs.extend(utc);
 
@@ -52,6 +53,22 @@ export class TransactionService {
       this.transactions = this.transactions.concat(newTransactions);
       return newTransactions;
     }
+  }
+
+  public getPayerBalances(): PayerBalances {
+    const payerBalances = {};
+
+    const _getPlayerBalances = (openPositionHead: OpenPosition) => {
+      if (openPositionHead === null) return;
+
+      const payer = openPositionHead.payer;
+      if (!(payer in payerBalances)) payerBalances[payer] = 0;
+      payerBalances[payer] += openPositionHead.balance;
+      _getPlayerBalances(openPositionHead.next);
+    };
+
+    _getPlayerBalances(this.openPositionHead);
+    return payerBalances;
   }
 
   private updateOpenPositions(transaction: Transaction): void {

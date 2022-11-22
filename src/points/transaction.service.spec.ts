@@ -6,6 +6,7 @@ import { Transaction } from './interfaces/transaction.interface';
 import { TransactionService } from './transaction.service';
 
 import MockDate from 'mockdate';
+import { PayerBalances } from './interfaces/payer-balances.interface';
 
 describe('TransactionService', () => {
   let transactionService: TransactionService;
@@ -668,6 +669,47 @@ describe('TransactionService', () => {
             ...openPositionHead.next,
             balance: 50,
           }),
+        );
+      });
+    });
+
+    describe('getPayerBalances', () => {
+      beforeAll(() => {
+        const fourthOpenPosition: OpenPosition = {
+          payer: 'DANNON',
+          balance: -50,
+          timestamp: new Date(),
+          next: null,
+        };
+        const thirdOpenPosition: OpenPosition = {
+          payer: 'MILLER COORS',
+          balance: 250,
+          timestamp: new Date(),
+          next: fourthOpenPosition,
+        };
+        const secondOpenPosition: OpenPosition = {
+          payer: 'UNILEVER',
+          balance: 100,
+          timestamp: new Date(),
+          next: thirdOpenPosition,
+        };
+        transactionService.openPositionHead = {
+          payer: 'DANNON',
+          balance: 100,
+          timestamp: new Date(),
+          next: secondOpenPosition,
+        };
+      });
+      afterAll(() => resetTransactionProperties());
+
+      it('returns expected payer balances', () => {
+        const expectedPayerBalances: PayerBalances = {
+          DANNON: 50,
+          UNILEVER: 100,
+          'MILLER COORS': 250,
+        };
+        expect(transactionService.getPayerBalances()).toEqual(
+          expectedPayerBalances,
         );
       });
     });
