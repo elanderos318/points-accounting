@@ -5,6 +5,7 @@ import { Transaction } from './interfaces/transaction.interface';
 import * as dayjs from 'dayjs';
 import * as utc from 'dayjs/plugin/utc';
 import { OpenPosition } from './interfaces/open-position.interface';
+import { SpendPointsDto } from './dto/spend-points.dto';
 
 dayjs.extend(utc);
 
@@ -34,6 +35,23 @@ export class TransactionService {
     this.transactions.push(transaction);
 
     return transaction;
+  }
+
+  public spendPoints(spendPointsDto: SpendPointsDto): Transaction[] {
+    const debit = Math.abs(spendPointsDto.points) * -1;
+    if (debit === 0) {
+      throw new Error('cannot process 0 point transactions');
+    }
+    if (!this.isValidSpend(this.openPositionHead, debit)) {
+      throw new Error('insufficient balance');
+    } else {
+      const newTransactions = this.spendFromOpenPositions(
+        this.openPositionHead,
+        debit,
+      );
+      this.transactions = this.transactions.concat(newTransactions);
+      return newTransactions;
+    }
   }
 
   private updateOpenPositions(transaction: Transaction): void {
@@ -204,6 +222,73 @@ export class TransactionService {
         payer,
         debit,
         openPositionHead,
+      );
+    }
+  }
+
+  /**
+   * @description recursively checks whether open positions contain sufficient balance for spend
+   * @param openPositionHead current position in linked list
+   * @param debit negative integer to subtract balances from
+   */
+  private isValidSpend(
+    openPositionHead: OpenPosition | null,
+    debit: number,
+  ): boolean {
+    if (debit >= 0) {
+      throw new Error('invalid debit value');
+    }
+    if (openPositionHead === null) return false;
+
+    const remainingDebit = openPositionHead.balance + debit;
+    if (remainingDebit >= 0) return true;
+
+    return this.isValidSpend(openPositionHead.next, remainingDebit);
+  }
+
+  /**
+   * @description subtract balances from open positions totalling debit value and re-assign linked list head
+   * @param openPositionHead current position in linked list
+   * @param debit negative integer to subtract balances from
+   */
+  private spendFromOpenPositions(
+    openPositionHead: OpenPosition | null,
+    debit: number,
+    transactions: Transaction[] = [],
+  ): Transaction[] {
+    if (debit > 0) {
+      throw new Error('invalid debit value');
+    }
+    if (openPositionHead === null && debit < 0) {
+      throw new Error('cannot reduce empty position');
+    }
+    if (debit == 0) {
+      this.openPositionHead = openPositionHead;
+      return transactions;
+    }
+
+    // create transaction
+    const transactionValue =
+      Math.min(Math.abs(openPositionHead.balance), Math.abs(debit)) * -1;
+    const transaction: Transaction = {
+      payer: openPositionHead.payer,
+      points: transactionValue,
+      timestamp: dayjs().utc().toDate(),
+    };
+    transactions.push(transaction);
+
+    // update open position
+    openPositionHead.balance += debit;
+
+    // complete if balance remaining
+    if (openPositionHead.balance > 0) {
+      this.openPositionHead = openPositionHead;
+      return transactions;
+    } else {
+      return this.spendFromOpenPositions(
+        openPositionHead.next,
+        openPositionHead.balance,
+        transactions,
       );
     }
   }

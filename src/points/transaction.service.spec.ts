@@ -1,8 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { SpendPointsDto } from './dto/spend-points.dto';
 import { OpenPosition } from './interfaces/open-position.interface';
 import { Transaction } from './interfaces/transaction.interface';
 import { TransactionService } from './transaction.service';
+
+import MockDate from 'mockdate';
 
 describe('TransactionService', () => {
   let transactionService: TransactionService;
@@ -534,6 +537,138 @@ describe('TransactionService', () => {
             );
           });
         });
+      });
+    });
+  });
+
+  describe('spendPoints', () => {
+    describe('given insufficient payer balance', () => {
+      let startingTransactions: Transaction[];
+      let openPositionHead: OpenPosition;
+
+      beforeAll(() => {
+        startingTransactions = [
+          {
+            payer: 'DANNON',
+            points: 100,
+            timestamp: new Date('2022-04-04'),
+          },
+          {
+            payer: 'UNILEVER',
+            points: 100,
+            timestamp: new Date('2022-04-04'),
+          },
+        ];
+        transactionService.transactions = [...startingTransactions];
+
+        const secondOpenPosition: OpenPosition = {
+          payer: 'UNILEVER',
+          balance: 100,
+          timestamp: new Date('2022-04-04'),
+          next: null,
+        };
+        openPositionHead = {
+          payer: 'DANNON',
+          balance: 100,
+          timestamp: new Date('2022-04-04'),
+          next: secondOpenPosition,
+        };
+        transactionService.openPositionHead = toClientFormat(openPositionHead);
+      });
+      afterAll(() => resetTransactionProperties());
+
+      it('throws an error', () => {
+        const spendPointsDto: SpendPointsDto = {
+          points: -250,
+        };
+        const error = () => transactionService.spendPoints(spendPointsDto);
+        expect(error).toThrow('insufficient balance');
+      });
+      it('does not persist a transaction', () => {
+        expect(transactionService.transactions).toEqual(startingTransactions);
+      });
+      it('does not update open positions', () => {
+        matchOpenPositions(
+          transactionService.openPositionHead,
+          toClientFormat(openPositionHead),
+        );
+      });
+    });
+
+    describe('given sufficient payer balance', () => {
+      let startingTransactions: Transaction[];
+      let openPositionHead: OpenPosition;
+      let returnedTransactions: Transaction[];
+
+      const mockDate = new Date('2022-08-01');
+
+      beforeAll(() => {
+        MockDate.set(mockDate);
+        startingTransactions = [
+          {
+            payer: 'DANNON',
+            points: 100,
+            timestamp: new Date('2022-04-04'),
+          },
+          {
+            payer: 'UNILEVER',
+            points: 100,
+            timestamp: new Date('2022-04-04'),
+          },
+        ];
+        transactionService.transactions = [...startingTransactions];
+
+        const secondOpenPosition: OpenPosition = {
+          payer: 'UNILEVER',
+          balance: 100,
+          timestamp: new Date('2022-04-04'),
+          next: null,
+        };
+        openPositionHead = {
+          payer: 'DANNON',
+          balance: 100,
+          timestamp: new Date('2022-04-04'),
+          next: secondOpenPosition,
+        };
+        transactionService.openPositionHead = toClientFormat(openPositionHead);
+
+        const spendPointsDto: SpendPointsDto = {
+          points: -150,
+        };
+        returnedTransactions = transactionService.spendPoints(spendPointsDto);
+      });
+      afterAll(() => resetTransactionProperties());
+
+      it('returns expected transactions and persists new transactions', () => {
+        const expectedTransactions: Transaction[] = [
+          {
+            payer: 'DANNON',
+            points: -100,
+            timestamp: mockDate,
+          },
+          {
+            payer: 'UNILEVER',
+            points: -50,
+            timestamp: mockDate,
+          },
+        ];
+        expect(returnedTransactions.length).toBe(expectedTransactions.length);
+        expect(returnedTransactions).toEqual(expectedTransactions);
+        expect(transactionService.transactions.length).toBe(
+          startingTransactions.length + expectedTransactions.length,
+        );
+        expect(transactionService.transactions).toEqual([
+          ...startingTransactions,
+          ...expectedTransactions,
+        ]);
+      });
+      it('updates open positions', () => {
+        expect(transactionService.openPositionHead).toEqual(
+          toClientFormat({
+            ...openPositionHead.next,
+            balance: 50,
+          }),
+        );
       });
     });
   });
