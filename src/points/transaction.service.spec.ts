@@ -672,46 +672,46 @@ describe('TransactionService', () => {
         );
       });
     });
+  });
 
-    describe('getPayerBalances', () => {
-      beforeAll(() => {
-        const fourthOpenPosition: OpenPosition = {
-          payer: 'DANNON',
-          balance: -50,
-          timestamp: new Date(),
-          next: null,
-        };
-        const thirdOpenPosition: OpenPosition = {
-          payer: 'MILLER COORS',
-          balance: 250,
-          timestamp: new Date(),
-          next: fourthOpenPosition,
-        };
-        const secondOpenPosition: OpenPosition = {
-          payer: 'UNILEVER',
-          balance: 100,
-          timestamp: new Date(),
-          next: thirdOpenPosition,
-        };
-        transactionService.openPositionHead = {
-          payer: 'DANNON',
-          balance: 100,
-          timestamp: new Date(),
-          next: secondOpenPosition,
-        };
-      });
-      afterAll(() => resetTransactionProperties());
+  describe('getPayerBalances', () => {
+    beforeAll(() => {
+      const fourthOpenPosition: OpenPosition = {
+        payer: 'DANNON',
+        balance: -50,
+        timestamp: new Date(),
+        next: null,
+      };
+      const thirdOpenPosition: OpenPosition = {
+        payer: 'MILLER COORS',
+        balance: 250,
+        timestamp: new Date(),
+        next: fourthOpenPosition,
+      };
+      const secondOpenPosition: OpenPosition = {
+        payer: 'UNILEVER',
+        balance: 100,
+        timestamp: new Date(),
+        next: thirdOpenPosition,
+      };
+      transactionService.openPositionHead = {
+        payer: 'DANNON',
+        balance: 100,
+        timestamp: new Date(),
+        next: secondOpenPosition,
+      };
+    });
+    afterAll(() => resetTransactionProperties());
 
-      it('returns expected payer balances', () => {
-        const expectedPayerBalances: PayerBalances = {
-          DANNON: 50,
-          UNILEVER: 100,
-          'MILLER COORS': 250,
-        };
-        expect(transactionService.getPayerBalances()).toEqual(
-          expectedPayerBalances,
-        );
-      });
+    it('returns expected payer balances', () => {
+      const expectedPayerBalances: PayerBalances = {
+        DANNON: 50,
+        UNILEVER: 100,
+        'MILLER COORS': 250,
+      };
+      expect(transactionService.getPayerBalances()).toEqual(
+        expectedPayerBalances,
+      );
     });
   });
 
