@@ -676,28 +676,52 @@ describe('TransactionService', () => {
 
   describe('getPayerBalances', () => {
     beforeAll(() => {
+      const timestamp = new Date('10-31-2022');
+      transactionService.transactions = [
+        {
+          payer: 'DANNON',
+          points: 100,
+          timestamp,
+        },
+        {
+          payer: 'UNILEVER',
+          points: 100,
+          timestamp,
+        },
+        {
+          payer: 'MILLER COORS',
+          points: 250,
+          timestamp,
+        },
+        {
+          payer: 'DANNON',
+          points: -50,
+          timestamp,
+        },
+      ];
+
       const fourthOpenPosition: OpenPosition = {
         payer: 'DANNON',
         balance: -50,
-        timestamp: new Date(),
+        timestamp,
         next: null,
       };
       const thirdOpenPosition: OpenPosition = {
         payer: 'MILLER COORS',
         balance: 250,
-        timestamp: new Date(),
+        timestamp,
         next: fourthOpenPosition,
       };
       const secondOpenPosition: OpenPosition = {
         payer: 'UNILEVER',
         balance: 100,
-        timestamp: new Date(),
+        timestamp,
         next: thirdOpenPosition,
       };
       transactionService.openPositionHead = {
         payer: 'DANNON',
         balance: 100,
-        timestamp: new Date(),
+        timestamp,
         next: secondOpenPosition,
       };
     });
