@@ -57,13 +57,14 @@ export class TransactionService {
 
   public getPayerBalances(): PayerBalances {
     const payerBalances = {};
+    for (const transaction of this.transactions) {
+      const payer = transaction.payer;
+      if (!(payer in payerBalances)) payerBalances[payer] = 0;
+    }
 
     const _getPlayerBalances = (openPositionHead: OpenPosition) => {
       if (openPositionHead === null) return;
-
-      const payer = openPositionHead.payer;
-      if (!(payer in payerBalances)) payerBalances[payer] = 0;
-      payerBalances[payer] += openPositionHead.balance;
+      payerBalances[openPositionHead.payer] += openPositionHead.balance;
       _getPlayerBalances(openPositionHead.next);
     };
 
