@@ -22,18 +22,47 @@ describe('PointsController', () => {
   afterAll(async () => await app.close());
 
   describe('POST /points/transaction', () => {
-    const timestamp = new Date('2022-10-31');
+    const timestamp = new Date('2022-10-31T10:00:00Z');
     let createTransactionDto: CreateTransactionDto;
 
     beforeAll(async () => {
       createTransactionDto = {
         payer: 'DANNON',
-        points: 500,
+        points: 300,
         timestamp,
       };
       response = await request(app.getHttpServer())
         .post('/points/transaction')
         .send(createTransactionDto);
+    });
+    afterAll(async () => {
+      const transactions: CreateTransactionDto[] = [
+        {
+          payer: 'UNILEVER',
+          points: 200,
+          timestamp: new Date('2022-10-31T11:00:00Z'),
+        },
+        {
+          payer: 'DANNON',
+          points: -200,
+          timestamp: new Date('2022-10-31T15:00:00Z'),
+        },
+        {
+          payer: 'MILLER COORS',
+          points: 10000,
+          timestamp: new Date('2022-11-01T14:00:00Z'),
+        },
+        {
+          payer: 'DANNON',
+          points: 1000,
+          timestamp: new Date('2022-11-02T14:00:00Z'),
+        },
+      ];
+      for (const transaction of transactions) {
+        await request(app.getHttpServer())
+          .post('/points/transaction')
+          .send(transaction);
+      }
     });
 
     it('should respond with 201', () => {
@@ -53,7 +82,7 @@ describe('PointsController', () => {
     beforeAll(async () => {
       MockDate.set(mockDate);
       spendPointsDto = {
-        points: 250,
+        points: 5000,
       };
       response = await request(app.getHttpServer())
         .post('/points/spend')
@@ -64,11 +93,12 @@ describe('PointsController', () => {
       expect(response.statusCode).toBe(201);
     });
     it('should return expected transactions', () => {
-      expect(response.body).toEqual(
-        toClientFormat([
-          { payer: 'DANNON', points: -250, timestamp: mockDate },
-        ]) as Transaction[],
-      );
+      const expectedTransactions: Transaction[] = [
+        { payer: 'DANNON', points: -100, timestamp: mockDate },
+        { payer: 'UNILEVER', points: -200, timestamp: mockDate },
+        { payer: 'MILLER COORS', points: -4700, timestamp: mockDate },
+      ];
+      expect(response.body).toEqual(toClientFormat(expectedTransactions));
     });
   });
 
@@ -81,7 +111,11 @@ describe('PointsController', () => {
       expect(response.statusCode).toBe(200);
     });
     it('should return expected transaction', () => {
-      expect(response.body).toEqual({ DANNON: 250 });
+      expect(response.body).toEqual({
+        DANNON: 1000,
+        UNILEVER: 0,
+        'MILLER COORS': 5300,
+      });
     });
   });
 
