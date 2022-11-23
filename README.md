@@ -1,6 +1,6 @@
 ## Description
 
-An example point accounting system using Nest.js. Instructions for running app are below, or you may build a docker image with included Dockerfile. Run tests using `npm test`.
+An example point accounting system using Nest.js. Instructions for running app are below, or you may build a docker image with included Dockerfile. Run tests using `npm test`. App listens on port `3000`.
 
 ## Installation
 
